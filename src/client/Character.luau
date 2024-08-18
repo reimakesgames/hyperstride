@@ -28,6 +28,7 @@ local SLIDE_START_SPEED = 70
 local SLIDE_END_SPEED = 20
 local SLIDE_FRICTION = 0.8
 local SLIDE_STEER_ACCELERATION = 50
+local SLIDE_GRAVITY = -200
 
 local JUMP_FORCE = 50
 local JUMP_SUSTAIN_GRAVITY = 0.5
@@ -225,6 +226,10 @@ function Character:UpdateVelocity(deltaTime)
 		else
 			CurrentVelocity -= CurrentVelocity * (SLIDE_FRICTION * deltaTime)
 
+			local Force = ProjectToPlane(-CurrentCharacter.HumanoidRootPart.CFrame.UpVector, Ground.Normal) * SLIDE_GRAVITY
+
+			CurrentVelocity -= Force * deltaTime
+
 			local CurrentSpeed = CurrentVelocity.Magnitude
 			local TargetVelocity = GroundedMovement * CurrentSpeed
 			local SteerForce = (TargetVelocity - CurrentVelocity) * SLIDE_STEER_ACCELERATION * deltaTime
@@ -241,9 +246,18 @@ function Character:UpdateVelocity(deltaTime)
 			local PlanarMovement = ProjectToPlane(RequestedMovement, CurrentCharacter.HumanoidRootPart.CFrame.UpVector) * RequestedMovement.Magnitude
 			local CurrentPlanarVelocity = ProjectToPlane(CurrentVelocity, CurrentCharacter.HumanoidRootPart.CFrame.UpVector)
 			local MovementForce = PlanarMovement * AIR_ACCELERATION * deltaTime
-			local TargetPlanarVelocity = CurrentPlanarVelocity + MovementForce
-			TargetPlanarVelocity = ClampMagnitude(TargetPlanarVelocity, AIR_SPEED)
-			CurrentVelocity += (TargetPlanarVelocity - CurrentPlanarVelocity)
+			if (CurrentPlanarVelocity.Magnitude < AIR_SPEED) then
+				local TargetPlanarVelocity = CurrentPlanarVelocity + MovementForce
+				TargetPlanarVelocity = ClampMagnitude(TargetPlanarVelocity, AIR_SPEED)
+				MovementForce = TargetPlanarVelocity - CurrentPlanarVelocity
+			elseif (CurrentPlanarVelocity:Dot(MovementForce) > 0) then
+				local ConstrainedMovementForce = ProjectToPlane(
+					MovementForce,
+					CurrentPlanarVelocity.Unit
+				)
+				MovementForce = ConstrainedMovementForce
+			end
+			CurrentVelocity += MovementForce
 		end
 
 		local EffectiveGravity = GRAVITY
