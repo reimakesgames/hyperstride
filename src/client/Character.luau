@@ -36,8 +36,9 @@ local JUMP_SUSTAIN_GRAVITY = 0.5
 local GRAVITY = -200
 
 local STAND_HEIGHT = 0
-local CROUCH_HEIGHT = -1.5
+local CROUCH_HEIGHT = -1
 local CROUCH_HEIGHT_RESPONSE = 15
+local SLIDE_HEIGHT = -2
 
 local CurrentVelocity = Vector3.new()
 
@@ -167,7 +168,12 @@ local LastState = CharacterState
 local TempState = CharacterState
 
 function Character:UpdateBody(deltaTime: number)
-	local HipTargetHeight = State.Stance == Character.Stance.Stand and STAND_HEIGHT or CROUCH_HEIGHT
+	local HipTargetHeight = STAND_HEIGHT
+	if (State.Stance == Character.Stance.Crouch) then
+		HipTargetHeight = CROUCH_HEIGHT
+	elseif (State.Stance == Character.Stance.Slide) then
+		HipTargetHeight = SLIDE_HEIGHT
+	end
 
 	CurrentCharacter.Humanoid.HipHeight = Lerp(
 		CurrentCharacter.Humanoid.HipHeight,
