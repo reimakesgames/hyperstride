@@ -31,6 +31,7 @@ local SLIDE_STEER_ACCELERATION = 50
 local SLIDE_GRAVITY = -200
 
 local JUMP_FORCE = 50
+local COYOTE_TIME = 0.2
 local JUMP_SUSTAIN_GRAVITY = 0.5
 local GRAVITY = -200
 
@@ -46,6 +47,9 @@ local RequestedJump = false
 local RequestedJumpSustain = false
 local RequestedCrouch = false
 local RequestedCrouchInAir = false
+
+local TimeSinceUngrounded = 0
+local TimeSinceJumpRequest = 0
 
 local NormalDisplay = Instance.new("Part")
 NormalDisplay.Anchored = true
@@ -183,7 +187,12 @@ function Character:UpdateInput(input: CharacterInput)
 	if (CharacterInput.Movement == Vector2.new()) then
 		RequestedMovement = Vector3.new()
 	end
+
+	local WasRequestingJump = RequestedJump
 	RequestedJump = RequestedJump or CharacterInput.Jump
+	if (RequestedJump and not WasRequestingJump) then
+		TimeSinceJumpRequest = 0
+	end
 	RequestedJumpSustain = CharacterInput.JumpSustain
 	local WasRequestingCrouch = RequestedCrouch
 
@@ -207,6 +216,8 @@ function Character:UpdateVelocity(deltaTime)
 	if (StickResult and IsSupposedToBeStuckToGround) then
 		CurrentCharacter.HumanoidRootPart.CFrame = CFrame.new(StickResult.Position + Vector3.new(0, 3 + CurrentCharacter.Humanoid.HipHeight, 0))
 		NormalDisplay.CFrame = CFrame.new(StickResult.Position, StickResult.Position + StickResult.Normal)
+
+		TimeSinceUngrounded = 0
 
 		local Ground = CheckGround() or {Normal = Vector3.new(0, 1, 0)}
 		local GroundedMovement = ProjectToPlane(RequestedMovement, Ground.Normal) * RequestedMovement.Magnitude
@@ -256,6 +267,8 @@ function Character:UpdateVelocity(deltaTime)
 			end
 		end
 	else
+		TimeSinceUngrounded += deltaTime
+
 		if (RequestedMovement.Magnitude > 0) then
 			local PlanarMovement = ProjectToPlane(RequestedMovement, CurrentCharacter.HumanoidRootPart.CFrame.UpVector) * RequestedMovement.Magnitude
 			local CurrentPlanarVelocity = ProjectToPlane(CurrentVelocity, CurrentCharacter.HumanoidRootPart.CFrame.UpVector)
@@ -300,7 +313,9 @@ function Character:UpdateVelocity(deltaTime)
 	end
 
 	if (RequestedJump) then
-		if (State.Grounded) then
+		local CanCoyoteJump = TimeSinceUngrounded < COYOTE_TIME
+
+		if (State.Grounded or CanCoyoteJump) then
 			print("jumping")
 			RequestedJump = false
 			RequestedCrouch = false
@@ -315,7 +330,10 @@ function Character:UpdateVelocity(deltaTime)
 				IsSupposedToBeStuckToGround = true
 			end)
 		else
-			RequestedJump = false
+			TimeSinceJumpRequest += deltaTime
+
+			local CanJumpLater = TimeSinceJumpRequest < COYOTE_TIME
+			RequestedJump = CanJumpLater
 		end
 	end
 
