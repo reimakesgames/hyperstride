@@ -50,6 +50,7 @@ local RequestedCrouchInAir = false
 
 local TimeSinceUngrounded = 0
 local TimeSinceJumpRequest = 0
+local UngroundedDueToJump = false
 
 local NormalDisplay = Instance.new("Part")
 NormalDisplay.Anchored = true
@@ -218,6 +219,7 @@ function Character:UpdateVelocity(deltaTime)
 		NormalDisplay.CFrame = CFrame.new(StickResult.Position, StickResult.Position + StickResult.Normal)
 
 		TimeSinceUngrounded = 0
+		UngroundedDueToJump = false
 
 		local Ground = CheckGround() or {Normal = Vector3.new(0, 1, 0)}
 		local GroundedMovement = ProjectToPlane(RequestedMovement, Ground.Normal) * RequestedMovement.Magnitude
@@ -313,7 +315,7 @@ function Character:UpdateVelocity(deltaTime)
 	end
 
 	if (RequestedJump) then
-		local CanCoyoteJump = TimeSinceUngrounded < COYOTE_TIME
+		local CanCoyoteJump = TimeSinceUngrounded < COYOTE_TIME and not UngroundedDueToJump
 
 		if (State.Grounded or CanCoyoteJump) then
 			print("jumping")
@@ -321,6 +323,7 @@ function Character:UpdateVelocity(deltaTime)
 			RequestedCrouch = false
 			RequestedCrouchInAir = false
 			IsSupposedToBeStuckToGround = false
+			UngroundedDueToJump = true
 
 			local CurrentVerticalSpeed = CurrentVelocity:Dot(CurrentCharacter.HumanoidRootPart.CFrame.UpVector)
 			local TargetVerticalSpeed = math.max(CurrentVerticalSpeed, JUMP_FORCE)
