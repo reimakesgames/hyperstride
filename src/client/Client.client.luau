@@ -47,6 +47,7 @@ function Update(deltaTime)
 			Rotation = Camera:GetCameraCFrame().Rotation,
 			Movement = GetMovementVector2(),
 			Jump = Inputs[Enum.KeyCode.Space],
+			JumpSustain = UserInputService:IsKeyDown(Enum.KeyCode.Space),
 			Crouch = Crouch,
 		}
 		Character:UpdateInput(Input)

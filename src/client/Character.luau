@@ -21,8 +21,9 @@ local CROUCH_SPEED = 20
 local WALK_RESPONSE = 25
 local CROUCH_RESPONSE = 20
 
-local JUMP_FORCE = 30
-local GRAVITY = -100
+local JUMP_FORCE = 50
+local JUMP_SUSTAIN_GRAVITY = 0.5
+local GRAVITY = -200
 
 local STAND_HEIGHT = 0
 local CROUCH_HEIGHT = -1.5
@@ -35,6 +36,7 @@ local CurrentVelocity = Vector3.new()
 local RequestedRotation = CFrame.new()
 local RequestedMovement = Vector3.new()
 local RequestedJump = false
+local RequestedJumpSustain = false
 local RequestedCrouch = false
 
 local NormalDisplay = Instance.new("Part")
@@ -125,6 +127,7 @@ local CharacterInput = {
 	Rotation = CFrame.new(),
 	Movement = Vector2.new(),
 	Jump = false,
+	JumpSustain = false,
 	Crouch = Character.CrouchInput.None,
 }
 export type CharacterInput = typeof(CharacterInput)
@@ -154,6 +157,7 @@ function Character:UpdateInput(input: CharacterInput)
 		RequestedMovement = Vector3.new()
 	end
 	RequestedJump = RequestedJump or CharacterInput.Jump
+	RequestedJumpSustain = CharacterInput.JumpSustain
 	if (CharacterInput.Crouch == Character.CrouchInput.Toggle) then
 		RequestedCrouch = not RequestedCrouch
 	elseif (CharacterInput.Crouch == Character.CrouchInput.None) then
@@ -181,11 +185,12 @@ function Character:UpdateVelocity(deltaTime)
 		end
 		CurrentVelocity = CurrentVelocity:Lerp(TargetVelocity, 1 - math.exp(-Response * deltaTime))
 	else
-		if (CurrentVelocity.Y > 0) then
-			CurrentVelocity += CurrentCharacter.HumanoidRootPart.CFrame.UpVector * GRAVITY * deltaTime
-		elseif (CurrentVelocity.Y < 0) then
-			CurrentVelocity += CurrentCharacter.HumanoidRootPart.CFrame.UpVector * GRAVITY * deltaTime * 2
+		local EffectiveGravity = GRAVITY
+		local VerticalSpeed = CurrentVelocity:Dot(CurrentCharacter.HumanoidRootPart.CFrame.UpVector)
+		if (RequestedJumpSustain and VerticalSpeed > 0) then
+			EffectiveGravity *= JUMP_SUSTAIN_GRAVITY
 		end
+		CurrentVelocity += CurrentCharacter.HumanoidRootPart.CFrame.UpVector * EffectiveGravity * deltaTime
 	end
 
 	if (RequestedJump) then
