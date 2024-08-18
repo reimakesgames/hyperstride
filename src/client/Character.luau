@@ -21,6 +21,9 @@ local CROUCH_SPEED = 20
 local WALK_RESPONSE = 25
 local CROUCH_RESPONSE = 20
 
+local AIR_SPEED = 40
+local AIR_ACCELERATION = 200
+
 local JUMP_FORCE = 50
 local JUMP_SUSTAIN_GRAVITY = 0.5
 local GRAVITY = -200
@@ -95,6 +98,13 @@ end
 
 local function Lerp(a: number, b: number, t: number)
 	return a + (b - a) * t
+end
+
+local function ClampMagnitude(v: Vector3, max: number)
+	if (v.Magnitude > max) then
+		return v.Unit * max
+	end
+	return v
 end
 
 local function CheckGround(): RaycastResult?
@@ -185,6 +195,15 @@ function Character:UpdateVelocity(deltaTime)
 		end
 		CurrentVelocity = CurrentVelocity:Lerp(TargetVelocity, 1 - math.exp(-Response * deltaTime))
 	else
+		if (RequestedMovement.Magnitude > 0) then
+			local PlanarMovement = ProjectToPlane(RequestedMovement, CurrentCharacter.HumanoidRootPart.CFrame.UpVector) * RequestedMovement.Magnitude
+			local CurrentPlanarVelocity = ProjectToPlane(CurrentVelocity, CurrentCharacter.HumanoidRootPart.CFrame.UpVector)
+			local MovementForce = PlanarMovement * AIR_ACCELERATION * deltaTime
+			local TargetPlanarVelocity = CurrentPlanarVelocity + MovementForce
+			TargetPlanarVelocity = ClampMagnitude(TargetPlanarVelocity, AIR_SPEED)
+			CurrentVelocity += (TargetPlanarVelocity - CurrentPlanarVelocity)
+		end
+
 		local EffectiveGravity = GRAVITY
 		local VerticalSpeed = CurrentVelocity:Dot(CurrentCharacter.HumanoidRootPart.CFrame.UpVector)
 		if (RequestedJumpSustain and VerticalSpeed > 0) then
