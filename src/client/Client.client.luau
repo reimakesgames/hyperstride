@@ -4,9 +4,12 @@ local UserInputService = game:GetService("UserInputService")
 
 local Camera = require(script.Parent.Camera)
 local Character = require(script.Parent.Character)
+local Spring = require(script.Parent.Spring)
 
 local CurrentCamera = workspace.CurrentCamera
 local CurrentCharacter = Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait()
+
+local JumpSpring = Spring.new(0.075, 20)
 
 local CAMERA_OFFSET_FROM_ROOT = Vector3.new(0, 1.5, 0)
 
@@ -40,7 +43,7 @@ function Update(deltaTime)
 	if (CurrentCharacter) then
 		Character:BeforeCharacterUpdate()
 
-		Camera:UpdateRotation()
+		Camera:UpdateRotation(deltaTime)
 
 		local Crouch = if Inputs[Enum.KeyCode.LeftControl] then Character.CrouchInput.Toggle else Character.CrouchInput.None
 		local Input: Character.CharacterInput = {
@@ -62,9 +65,24 @@ function Update(deltaTime)
 	end
 end
 
-function LateUpdate()
+function LateUpdate(deltaTime)
 	local RootCFrame = CurrentCharacter:WaitForChild("HumanoidRootPart").CFrame
 	Camera:UpdatePosition(RootCFrame.Position + CAMERA_OFFSET_FROM_ROOT)
+
+	-- springs !!!
+	local AngularDisplacement = -1
+	local LinearDisplacement = 0.1
+
+	JumpSpring:Step(RootCFrame.Position, deltaTime)
+
+	local LocalSpringPosition = JumpSpring._current - RootCFrame.Position
+	local SpringHeight = LocalSpringPosition:Dot(RootCFrame.UpVector)
+
+	local CameraCFrame = CFrame.new(LocalSpringPosition * LinearDisplacement)
+	* Camera:GetCameraCFrame()
+	* CFrame.fromEulerAnglesYXZ(math.rad(-SpringHeight * AngularDisplacement), 0, 0)
+
+	Camera:UpdateCustomCFrame(CameraCFrame)
 end
 
 function Step(deltaTime)
@@ -72,8 +90,8 @@ function Step(deltaTime)
 	Character:UpdateRotation()
 end
 
-RunService:BindToRenderStep("HYPERSTRIDE_Update", Enum.RenderPriority.Input.Value, Update)
-RunService:BindToRenderStep("HYPERSTRIDE_LateUpdate", Enum.RenderPriority.Camera.Value, LateUpdate)
+RunService:BindToRenderStep("HYPERZTRIDE_Update", Enum.RenderPriority.Input.Value, Update)
+RunService:BindToRenderStep("HYPERZTRIDE_LateUpdate", Enum.RenderPriority.Camera.Value, LateUpdate)
 RunService.RenderStepped:Connect(Step)
 
 Players.LocalPlayer.CharacterAdded:Connect(function(character)
