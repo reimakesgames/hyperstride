@@ -45,6 +45,7 @@ local RequestedMovement = Vector3.new()
 local RequestedJump = false
 local RequestedJumpSustain = false
 local RequestedCrouch = false
+local RequestedCrouchInAir = false
 
 local NormalDisplay = Instance.new("Part")
 NormalDisplay.Anchored = true
@@ -184,12 +185,20 @@ function Character:UpdateInput(input: CharacterInput)
 	end
 	RequestedJump = RequestedJump or CharacterInput.Jump
 	RequestedJumpSustain = CharacterInput.JumpSustain
+	local WasRequestingCrouch = RequestedCrouch
+
 	if (CharacterInput.Crouch == Character.CrouchInput.Toggle) then
 		RequestedCrouch = not RequestedCrouch
 	elseif (CharacterInput.Crouch == Character.CrouchInput.None) then
 		RequestedCrouch = RequestedCrouch
 	else
 		RequestedCrouch = RequestedCrouch
+	end
+
+	if (RequestedCrouch and not WasRequestingCrouch) then
+		RequestedCrouchInAir = not State.Grounded
+	elseif (not RequestedCrouch and WasRequestingCrouch) then
+		RequestedCrouchInAir = false
 	end
 end
 
@@ -210,7 +219,12 @@ function Character:UpdateVelocity(deltaTime)
 			print("sliding")
 			State.Stance = Character.Stance.Slide
 
-			local SlideSpeed = math.max(SLIDE_START_SPEED, CurrentVelocity.Magnitude)
+			local EffectiveSlideStartSpeed = SLIDE_START_SPEED
+			if (not LastState.Grounded and not RequestedCrouchInAir) then
+				EffectiveSlideStartSpeed = 0
+				RequestedCrouchInAir = false
+			end
+			local SlideSpeed = math.max(EffectiveSlideStartSpeed, CurrentVelocity.Magnitude)
 			CurrentVelocity = ProjectToPlane(CurrentVelocity, Ground.Normal).Unit * SlideSpeed
 		end
 
@@ -288,6 +302,7 @@ function Character:UpdateVelocity(deltaTime)
 	if (RequestedJump) then
 		RequestedJump = false
 		RequestedCrouch = false
+		RequestedCrouchInAir = false
 		IsSupposedToBeStuckToGround = false
 
 		local CurrentVerticalSpeed = CurrentVelocity:Dot(CurrentCharacter.HumanoidRootPart.CFrame.UpVector)
