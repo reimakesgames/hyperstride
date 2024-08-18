@@ -1,0 +1,31 @@
+local UserInputService = game:GetService("UserInputService")
+
+--[[
+	A singleton class that controls the camera in the game.
+]]
+local Camera = {}
+Camera.__index = Camera
+
+local CurrentCamera = workspace.CurrentCamera
+
+function Camera:UpdatePosition(vec3: Vector3)
+	CurrentCamera.CFrame = CFrame.lookAlong(vec3, CurrentCamera.CFrame.LookVector)
+end
+
+--[[
+	Updates the rotation of the camera.
+	Takes in a unit vector3.
+]]
+function Camera:UpdateRotation()
+	local Delta = UserInputService:GetMouseDelta() * UserSettings().GameSettings.MouseSensitivity
+	local CameraCFrame = Camera:GetCameraCFrame()
+	* CFrame.Angles(0, -Delta.X / (math.pi * 2), 0)
+	* CFrame.Angles(-Delta.Y / (math.pi * 2), 0, 0)
+	CurrentCamera.CFrame = CFrame.lookAlong(CurrentCamera.CFrame.Position, CameraCFrame.LookVector)
+end
+
+function Camera:GetCameraCFrame()
+	return CurrentCamera.CFrame
+end
+
+return Camera
