@@ -25,8 +25,9 @@ local AIR_SPEED = 40
 local AIR_ACCELERATION = 200
 
 local SLIDE_START_SPEED = 70
-local SLIDE_END_SPEED = 30
+local SLIDE_END_SPEED = 20
 local SLIDE_FRICTION = 0.8
+local SLIDE_STEER_ACCELERATION = 50
 
 local JUMP_FORCE = 50
 local JUMP_SUSTAIN_GRAVITY = 0.5
@@ -223,6 +224,12 @@ function Character:UpdateVelocity(deltaTime)
 			CurrentVelocity = CurrentVelocity:Lerp(TargetVelocity, 1 - math.exp(-Response * deltaTime))
 		else
 			CurrentVelocity -= CurrentVelocity * (SLIDE_FRICTION * deltaTime)
+
+			local CurrentSpeed = CurrentVelocity.Magnitude
+			local TargetVelocity = GroundedMovement * CurrentSpeed
+			local SteerForce = (TargetVelocity - CurrentVelocity) * SLIDE_STEER_ACCELERATION * deltaTime
+			CurrentVelocity += SteerForce
+			CurrentVelocity = ClampMagnitude(CurrentVelocity, CurrentSpeed)
 
 			if (CurrentVelocity.Magnitude < SLIDE_END_SPEED) then
 				print("slide end")
