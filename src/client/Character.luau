@@ -147,6 +147,8 @@ export type Stance = typeof(Character.Stance)
 local CharacterState = {
 	Grounded = false,
 	Stance = Character.Stance.Stand,
+	Velocity = Vector3.new(),
+	Acceleration = Vector3.new(),
 }
 export type CharacterState = typeof(CharacterState)
 
@@ -213,6 +215,8 @@ function Character:UpdateInput(input: CharacterInput)
 end
 
 function Character:UpdateVelocity(deltaTime)
+	State.Acceleration = Vector3.new()
+
 	local StickResult = CheckGround()
 	if (StickResult and IsSupposedToBeStuckToGround) then
 		CurrentCharacter.HumanoidRootPart.CFrame = CFrame.new(StickResult.Position + Vector3.new(0, 3 + CurrentCharacter.Humanoid.HipHeight, 0))
@@ -249,7 +253,9 @@ function Character:UpdateVelocity(deltaTime)
 				TargetVelocity = GroundedMovement * Speed
 				MoveVelocityDisplay.CFrame = CFrame.lookAlong(CurrentCharacter.HumanoidRootPart.Position, GroundedMovement)
 			end
-			CurrentVelocity = CurrentVelocity:Lerp(TargetVelocity, 1 - math.exp(-Response * deltaTime))
+			local MoveVelocity = CurrentVelocity:Lerp(TargetVelocity, 1 - math.exp(-Response * deltaTime))
+			State.Acceleration = (MoveVelocity - CurrentVelocity) / deltaTime
+			CurrentVelocity = MoveVelocity
 		else
 			CurrentVelocity -= CurrentVelocity * (SLIDE_FRICTION * deltaTime)
 
@@ -259,9 +265,14 @@ function Character:UpdateVelocity(deltaTime)
 
 			local CurrentSpeed = CurrentVelocity.Magnitude
 			local TargetVelocity = GroundedMovement * CurrentSpeed
-			local SteerForce = (TargetVelocity - CurrentVelocity) * SLIDE_STEER_ACCELERATION * deltaTime
-			CurrentVelocity += SteerForce
-			CurrentVelocity = ClampMagnitude(CurrentVelocity, CurrentSpeed)
+			local SteerVelocity = CurrentVelocity
+			local SteerForce = (TargetVelocity - SteerVelocity) * SLIDE_STEER_ACCELERATION * deltaTime
+			SteerVelocity += SteerForce
+			SteerVelocity = ClampMagnitude(SteerVelocity, CurrentSpeed)
+
+			State.Acceleration = (SteerVelocity - CurrentVelocity) / deltaTime
+
+			CurrentVelocity = SteerVelocity
 
 			if (CurrentVelocity.Magnitude < SLIDE_END_SPEED) then
 				print("slide end")
@@ -383,6 +394,14 @@ function Character:AfterCharacterUpdate()
 
 	State.Grounded = CheckGround() and true or false
 	LastState = TempState
+end
+
+function Character:GetState(): CharacterState
+	return State
+end
+
+function Character:GetLastState(): CharacterState
+	return LastState
 end
 
 Players.LocalPlayer.CharacterAdded:Connect(function(character)
