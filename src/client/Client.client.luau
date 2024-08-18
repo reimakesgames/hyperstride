@@ -16,12 +16,15 @@ local LeanDamper = SmoothDamp.new()
 
 local AttackDamping = 0.5
 local DecayDamping = 0.3
-local Strength = 0.03
+local WalkStrength = 0.03
+local SlideStrength = 0.1
+local StrengthResponse = 5
 
 local AngularDisplacement = -1
 local LinearDisplacement = 0.1
 
 local DampedAcceleration = Vector3.new()
+local SmoothStrength = WalkStrength
 
 local CAMERA_OFFSET_FROM_ROOT = Vector3.new(0, 1.5, 0)
 
@@ -44,6 +47,10 @@ end
 
 local function ProjectOnPlane(v: Vector3, n: Vector3): Vector3
 	return v - v:Dot(n) * n
+end
+
+local function Lerp(a: number, b: number, t: number): number
+	return a + (b - a) * t
 end
 
 local Inputs = {}
@@ -89,8 +96,10 @@ function LateUpdate(deltaTime)
 	local Damping = if PlanarAcceleration.Magnitude > DampedAcceleration.Magnitude then AttackDamping else DecayDamping
 	DampedAcceleration = LeanDamper:Update(DampedAcceleration, PlanarAcceleration, Damping)
 	local LeanAxis = DampedAcceleration:Cross(Vector3.yAxis).Unit
+	local EffectiveStrength = Character:GetState().Stance == Character.Stance.Slide and SlideStrength or WalkStrength
+	SmoothStrength = Lerp(SmoothStrength, EffectiveStrength, 1 - math.exp(-StrengthResponse * deltaTime))
 
-	local LeanCFrame = CFrame.fromAxisAngle(LeanAxis, math.rad(-DampedAcceleration.Magnitude * Strength))
+	local LeanCFrame = CFrame.fromAxisAngle(LeanAxis, math.rad(-DampedAcceleration.Magnitude * SmoothStrength))
 	* Camera:GetCameraCFrame().Rotation
 
 	JumpSpring:Step(RootCFrame.Position, deltaTime)
