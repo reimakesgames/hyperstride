@@ -18,6 +18,8 @@ local TOP_COLLIDER_OFFSET = Vector3.new(0, 1.5, 0)
 
 local WALK_SPEED = 50
 local CROUCH_SPEED = 20
+local WALK_RESPONSE = 25
+local CROUCH_RESPONSE = 20
 
 local JUMP_FORCE = 30
 local GRAVITY = -100
@@ -171,12 +173,13 @@ function Character:UpdateVelocity(deltaTime)
 		local GroundedMovement = ProjectToPlane(RequestedMovement, Ground.Normal) * RequestedMovement.Magnitude
 
 		local Speed = Stance == Character.Stance.Stand and WALK_SPEED or CROUCH_SPEED
+		local Response = Stance == Character.Stance.Stand and WALK_RESPONSE or CROUCH_RESPONSE
+		local TargetVelocity = Vector3.new()
 		if (GroundedMovement.Magnitude > 0) then
-			CurrentVelocity = GroundedMovement * Speed
+			TargetVelocity = GroundedMovement * Speed
 			MoveVelocityDisplay.CFrame = CFrame.lookAlong(CurrentCharacter.HumanoidRootPart.Position, GroundedMovement)
-		else
-			CurrentVelocity = Vector3.new()
 		end
+		CurrentVelocity = CurrentVelocity:Lerp(TargetVelocity, 1 - math.exp(-Response * deltaTime))
 	else
 		if (CurrentVelocity.Y > 0) then
 			CurrentVelocity += CurrentCharacter.HumanoidRootPart.CFrame.UpVector * GRAVITY * deltaTime
