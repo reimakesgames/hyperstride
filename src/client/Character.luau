@@ -24,6 +24,10 @@ local CROUCH_RESPONSE = 20
 local AIR_SPEED = 40
 local AIR_ACCELERATION = 200
 
+local SLIDE_START_SPEED = 70
+local SLIDE_END_SPEED = 30
+local SLIDE_FRICTION = 0.8
+
 local JUMP_FORCE = 50
 local JUMP_SUSTAIN_GRAVITY = 0.5
 local GRAVITY = -200
@@ -31,8 +35,6 @@ local GRAVITY = -200
 local STAND_HEIGHT = 0
 local CROUCH_HEIGHT = -1.5
 local CROUCH_HEIGHT_RESPONSE = 15
-
-local Stance = 0
 
 local CurrentVelocity = Vector3.new()
 
@@ -130,8 +132,15 @@ export type CrouchInput = typeof(Character.CrouchInput)
 Character.Stance = {
 	Stand = 0,
 	Crouch = 1,
+	Slide = 2,
 }
 export type Stance = typeof(Character.Stance)
+
+local CharacterState = {
+	Grounded = false,
+	Stance = Character.Stance.Stand,
+}
+export type CharacterState = typeof(CharacterState)
 
 local CharacterInput = {
 	Rotation = CFrame.new(),
@@ -142,8 +151,13 @@ local CharacterInput = {
 }
 export type CharacterInput = typeof(CharacterInput)
 
+-- local State.Stance = Character.Stance.Stand
+local State = CharacterState
+local LastState = CharacterState
+local TempState = CharacterState
+
 function Character:UpdateBody(deltaTime: number)
-	local HipTargetHeight = Stance == Character.Stance.Stand and STAND_HEIGHT or CROUCH_HEIGHT
+	local HipTargetHeight = State.Stance == Character.Stance.Stand and STAND_HEIGHT or CROUCH_HEIGHT
 
 	CurrentCharacter.Humanoid.HipHeight = Lerp(
 		CurrentCharacter.Humanoid.HipHeight,
@@ -186,14 +200,35 @@ function Character:UpdateVelocity(deltaTime)
 		local Ground = CheckGround() or {Normal = Vector3.new(0, 1, 0)}
 		local GroundedMovement = ProjectToPlane(RequestedMovement, Ground.Normal) * RequestedMovement.Magnitude
 
-		local Speed = Stance == Character.Stance.Stand and WALK_SPEED or CROUCH_SPEED
-		local Response = Stance == Character.Stance.Stand and WALK_RESPONSE or CROUCH_RESPONSE
-		local TargetVelocity = Vector3.new()
-		if (GroundedMovement.Magnitude > 0) then
-			TargetVelocity = GroundedMovement * Speed
-			MoveVelocityDisplay.CFrame = CFrame.lookAlong(CurrentCharacter.HumanoidRootPart.Position, GroundedMovement)
+		local Moving = GroundedMovement.Magnitude > 0
+		local Crouching = State.Stance == Character.Stance.Crouch
+		local WasStanding = LastState.Stance == Character.Stance.Stand
+		local WasInAir = not LastState.Grounded
+		if (Moving and Crouching and (WasStanding or WasInAir)) then
+			print("sliding")
+			State.Stance = Character.Stance.Slide
+
+			local SlideSpeed = math.max(SLIDE_START_SPEED, CurrentVelocity.Magnitude)
+			CurrentVelocity = ProjectToPlane(CurrentVelocity, Ground.Normal).Unit * SlideSpeed
 		end
-		CurrentVelocity = CurrentVelocity:Lerp(TargetVelocity, 1 - math.exp(-Response * deltaTime))
+
+		if (State.Stance == Character.Stance.Stand or State.Stance == Character.Stance.Crouch) then
+			local Speed = State.Stance == Character.Stance.Stand and WALK_SPEED or CROUCH_SPEED
+			local Response = State.Stance == Character.Stance.Stand and WALK_RESPONSE or CROUCH_RESPONSE
+			local TargetVelocity = Vector3.new()
+			if (GroundedMovement.Magnitude > 0) then
+				TargetVelocity = GroundedMovement * Speed
+				MoveVelocityDisplay.CFrame = CFrame.lookAlong(CurrentCharacter.HumanoidRootPart.Position, GroundedMovement)
+			end
+			CurrentVelocity = CurrentVelocity:Lerp(TargetVelocity, 1 - math.exp(-Response * deltaTime))
+		else
+			CurrentVelocity -= CurrentVelocity * (SLIDE_FRICTION * deltaTime)
+
+			if (CurrentVelocity.Magnitude < SLIDE_END_SPEED) then
+				print("slide end")
+				State.Stance = Character.Stance.Crouch
+			end
+		end
 	else
 		if (RequestedMovement.Magnitude > 0) then
 			local PlanarMovement = ProjectToPlane(RequestedMovement, CurrentCharacter.HumanoidRootPart.CFrame.UpVector) * RequestedMovement.Magnitude
@@ -214,6 +249,7 @@ function Character:UpdateVelocity(deltaTime)
 
 	if (RequestedJump) then
 		RequestedJump = false
+		RequestedCrouch = false
 		IsSupposedToBeStuckToGround = false
 
 		local CurrentVerticalSpeed = CurrentVelocity:Dot(CurrentCharacter.HumanoidRootPart.CFrame.UpVector)
@@ -223,6 +259,11 @@ function Character:UpdateVelocity(deltaTime)
 		task.delay(0.05, function()
 			IsSupposedToBeStuckToGround = true
 		end)
+	end
+
+	if (not StickResult and State.Stance == Character.Stance.Slide) then
+		print("cancelled sliding because of air")
+		State.Stance = Character.Stance.Crouch
 	end
 
 	CurrentCharacter.HumanoidRootPart.Velocity = CurrentVelocity
@@ -237,27 +278,32 @@ function Character:UpdateRotation()
 end
 
 function Character:BeforeCharacterUpdate()
-	if (RequestedCrouch and Stance == Character.Stance.Stand) then
+	TempState = table.clone(State)
+
+	if (RequestedCrouch and State.Stance == Character.Stance.Stand) then
 		print("crouching")
-		Stance = Character.Stance.Crouch
+		State.Stance = Character.Stance.Crouch
 	end
 end
 
 function Character:AfterCharacterUpdate()
-	if (not RequestedCrouch and Stance ~= Character.Stance.Stand) then
+	if (not RequestedCrouch and State.Stance ~= Character.Stance.Stand) then
 		local Params = RaycastParams.new()
 		Params.FilterType = Enum.RaycastFilterType.Exclude
 		Params.FilterDescendantsInstances = {CurrentCharacter}
 		local Result = workspace:Spherecast(CurrentCharacter.HumanoidRootPart.Position - Vector3.new(0, 2, 0), 3, Vector3.new(0, 4.5, 0), Params)
 		if (not Result) then
 			print("standing")
-			Stance = Character.Stance.Stand
+			State.Stance = Character.Stance.Stand
 		else
 			print("can't stand up")
 			RequestedCrouch = true
-			Stance = Character.Stance.Crouch
+			State.Stance = Character.Stance.Crouch
 		end
 	end
+
+	State.Grounded = CheckGround() and true or false
+	LastState = TempState
 end
 
 Players.LocalPlayer.CharacterAdded:Connect(function(character)
