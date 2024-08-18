@@ -32,7 +32,7 @@ UserInputService.InputBegan:Connect(function(input)
 	Inputs[input.KeyCode] = true
 end)
 
-function Update()
+function Update(deltaTime)
 	UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
 	CurrentCamera.CameraType = Enum.CameraType.Scriptable
 
@@ -50,6 +50,7 @@ function Update()
 			Crouch = Crouch,
 		}
 		Character:UpdateInput(Input)
+		Character:UpdateBody(deltaTime)
 
 		Character:AfterCharacterUpdate()
 	end

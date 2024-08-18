@@ -5,7 +5,7 @@ task.delay(1, function()
 	for _, child in ipairs(CurrentCharacter:GetDescendants()) do
 		if (child:IsA("BasePart")) then
 			child.Massless = true
-			child.LocalTransparencyModifier = .5
+			child.LocalTransparencyModifier = 1
 		end
 	end
 end)
@@ -24,6 +24,7 @@ local GRAVITY = -100
 
 local STAND_HEIGHT = 0
 local CROUCH_HEIGHT = -1.5
+local CROUCH_HEIGHT_RESPONSE = 15
 
 local Stance = 0
 
@@ -88,6 +89,10 @@ local function ProjectToPlane(v: Vector3, n: Vector3)
 	return v - n * (v:Dot(n))
 end
 
+local function Lerp(a: number, b: number, t: number)
+	return a + (b - a) * t
+end
+
 local function CheckGround(): RaycastResult?
 	local Params = RaycastParams.new()
 	Params.FilterType = Enum.RaycastFilterType.Exclude
@@ -121,6 +126,16 @@ local CharacterInput = {
 	Crouch = Character.CrouchInput.None,
 }
 export type CharacterInput = typeof(CharacterInput)
+
+function Character:UpdateBody(deltaTime: number)
+	local HipTargetHeight = Stance == Character.Stance.Stand and STAND_HEIGHT or CROUCH_HEIGHT
+
+	CurrentCharacter.Humanoid.HipHeight = Lerp(
+		CurrentCharacter.Humanoid.HipHeight,
+		HipTargetHeight,
+		1 - math.exp(-CROUCH_HEIGHT_RESPONSE * deltaTime)
+	)
+end
 
 function Character:UpdateInput(input: CharacterInput)
 	if (not IsCollidersReady) then
@@ -198,7 +213,6 @@ function Character:BeforeCharacterUpdate()
 	if (RequestedCrouch and Stance == Character.Stance.Stand) then
 		print("crouching")
 		Stance = Character.Stance.Crouch
-		CurrentCharacter.Humanoid.HipHeight = CROUCH_HEIGHT
 	end
 end
 
@@ -211,12 +225,10 @@ function Character:AfterCharacterUpdate()
 		if (not Result) then
 			print("standing")
 			Stance = Character.Stance.Stand
-			CurrentCharacter.Humanoid.HipHeight = STAND_HEIGHT
 		else
 			print("can't stand up")
 			RequestedCrouch = true
 			Stance = Character.Stance.Crouch
-			CurrentCharacter.Humanoid.HipHeight = CROUCH_HEIGHT
 		end
 	end
 end
@@ -229,7 +241,7 @@ Players.LocalPlayer.CharacterAdded:Connect(function(character)
 		for _, child in ipairs(CurrentCharacter:GetDescendants()) do
 			if (child:IsA("BasePart")) then
 				child.Massless = true
-				child.LocalTransparencyModifier = .5
+				child.LocalTransparencyModifier = 1
 			end
 		end
 	end)
