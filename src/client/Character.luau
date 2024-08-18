@@ -257,6 +257,23 @@ function Character:UpdateVelocity(deltaTime)
 				)
 				MovementForce = ConstrainedMovementForce
 			end
+
+			if (StickResult) then
+				-- prevents air climbing when on very steep slopes
+				if (MovementForce:Dot(CurrentVelocity + MovementForce) > 0) then
+					local ObstructionNormal = CurrentCharacter.HumanoidRootPart.CFrame.UpVector:Cross(
+						CurrentCharacter.HumanoidRootPart.CFrame.UpVector:Cross(
+							StickResult.Normal
+						)
+					).Unit
+					-- if obstruction normal is NaN, reset it to the up vector
+					if (ObstructionNormal.Magnitude ~= ObstructionNormal.Magnitude) then
+						ObstructionNormal = CurrentCharacter.HumanoidRootPart.CFrame.UpVector
+					end
+
+					MovementForce = ProjectToPlane(MovementForce, ObstructionNormal)
+				end
+			end
 			CurrentVelocity += MovementForce
 		end
 
