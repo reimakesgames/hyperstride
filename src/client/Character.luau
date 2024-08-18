@@ -300,18 +300,23 @@ function Character:UpdateVelocity(deltaTime)
 	end
 
 	if (RequestedJump) then
-		RequestedJump = false
-		RequestedCrouch = false
-		RequestedCrouchInAir = false
-		IsSupposedToBeStuckToGround = false
+		if (State.Grounded) then
+			print("jumping")
+			RequestedJump = false
+			RequestedCrouch = false
+			RequestedCrouchInAir = false
+			IsSupposedToBeStuckToGround = false
 
-		local CurrentVerticalSpeed = CurrentVelocity:Dot(CurrentCharacter.HumanoidRootPart.CFrame.UpVector)
-		local TargetVerticalSpeed = math.max(CurrentVerticalSpeed, JUMP_FORCE)
-		CurrentVelocity += CurrentCharacter.HumanoidRootPart.CFrame.UpVector * (TargetVerticalSpeed - CurrentVerticalSpeed)
+			local CurrentVerticalSpeed = CurrentVelocity:Dot(CurrentCharacter.HumanoidRootPart.CFrame.UpVector)
+			local TargetVerticalSpeed = math.max(CurrentVerticalSpeed, JUMP_FORCE)
+			CurrentVelocity += CurrentCharacter.HumanoidRootPart.CFrame.UpVector * (TargetVerticalSpeed - CurrentVerticalSpeed)
 
-		task.delay(0.05, function()
-			IsSupposedToBeStuckToGround = true
-		end)
+			task.delay(0.05, function()
+				IsSupposedToBeStuckToGround = true
+			end)
+		else
+			RequestedJump = false
+		end
 	end
 
 	if (not StickResult and State.Stance == Character.Stance.Slide) then
