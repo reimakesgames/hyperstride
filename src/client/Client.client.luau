@@ -19,6 +19,10 @@ local WalkSpring = Spring.new(0.05, 10)
 
 local LeanDamper = SmoothDamp.new()
 
+local FieldOfViewResponsiveness = 10
+local NormalFieldOfView = 70
+local SlideFieldOfView = 75
+
 local AttackDamping = 0.5
 local DecayDamping = 0.3
 local WalkStrength = 0.03
@@ -151,6 +155,11 @@ function LateUpdate(deltaTime)
 	local effectiveFootstepVolume = (characterState.Grounded and characterState.Stance ~= Character.Stance.Slide) and 1 or 0
 	SoundsFolder.Footsteps.Volume = effectiveFootstepVolume * math.clamp(WalkSpeed, 0, 1) * 1
 	SoundsFolder.Footsteps.PlaybackSpeed = PlaybackSpeed
+
+	local effectiveFieldOfView = characterState.Stance == Character.Stance.Slide and SlideFieldOfView or NormalFieldOfView
+	effectiveFieldOfView += characterState.Velocity.Magnitude / 20
+	print(effectiveFieldOfView)
+	CurrentCamera.FieldOfView = Lerp(CurrentCamera.FieldOfView, effectiveFieldOfView, 1 - math.exp(-FieldOfViewResponsiveness * deltaTime))
 end
 
 function Step(deltaTime)
