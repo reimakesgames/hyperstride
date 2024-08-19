@@ -15,6 +15,7 @@ local CurrentCharacter = Players.LocalPlayer.Character or Players.LocalPlayer.Ch
 local SoundsFolder = StarterGui:WaitForChild("Sounds")
 
 local JumpSpring = Spring.new(0.075, 20)
+local WalkSpring = Spring.new(0.05, 10)
 
 local LeanDamper = SmoothDamp.new()
 
@@ -125,8 +126,20 @@ function LateUpdate(deltaTime)
 
 	local JumpCFrame = CFrame.fromEulerAnglesYXZ(math.rad(-SpringHeight * AngularDisplacement), 0, 0)
 
+	local WalkSpeed = characterState.Velocity.Magnitude / 50
+	local PlaybackSpeed = Eerp(1, 4, characterState.Velocity.Magnitude / 100)
+	local EffectiveWalkSpeed = (characterState.Grounded and characterState.Stance ~= Character.Stance.Slide) and 1 or 0
+
+	local XSine = math.sin(SoundsFolder.Footsteps.TimePosition * math.pi * 2 * (62 / 60) * PlaybackSpeed)
+	local YSine = math.sin(SoundsFolder.Footsteps.TimePosition * math.pi * (62 / 60) * PlaybackSpeed)
+
+	WalkSpring:Step(Vector3.new(XSine, YSine, 0) * EffectiveWalkSpeed * math.clamp(WalkSpeed, 0, 1), deltaTime)
+
+	local WalkCFrame = CFrame.fromEulerAnglesYXZ(math.rad(WalkSpring._current.X * AngularDisplacement), math.rad(WalkSpring._current.Y * AngularDisplacement), 0)
+
 	local CameraCFrame = CFrame.new(LocalSpringPosition * LinearDisplacement)
 	* CFrame.new(Camera:GetCameraCFrame().Position)
+	* WalkCFrame
 	* LeanCFrame
 	* JumpCFrame
 
@@ -136,8 +149,8 @@ function LateUpdate(deltaTime)
 	SoundsFolder.Wind.PlaybackSpeed = Eerp(0.5, 4, characterState.Velocity.Magnitude / 500)
 
 	local effectiveFootstepVolume = (characterState.Grounded and characterState.Stance ~= Character.Stance.Slide) and 1 or 0
-	SoundsFolder.Footsteps.Volume = effectiveFootstepVolume * math.clamp(characterState.Velocity.Magnitude / 50, 0, 1) * 1
-	SoundsFolder.Footsteps.PlaybackSpeed = Eerp(1, 4, characterState.Velocity.Magnitude / 100)
+	SoundsFolder.Footsteps.Volume = effectiveFootstepVolume * math.clamp(WalkSpeed, 0, 1) * 1
+	SoundsFolder.Footsteps.PlaybackSpeed = PlaybackSpeed
 end
 
 function Step(deltaTime)
