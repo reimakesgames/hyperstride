@@ -1,9 +1,4 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CurrentCamera = workspace.CurrentCamera
-
-local RemoteEvents = ReplicatedStorage:WaitForChild("Events")
-
-local FireRemoteEvent = RemoteEvents:WaitForChild("Fire")
 
 local Bullets = {}
 
@@ -60,9 +55,5 @@ function Effects:Update(deltaTime)
 		end
 	end
 end
-
-FireRemoteEvent.OnClientEvent:Connect(function(startPosition, endPosition, speed)
-	Effects:CreateBullet(startPosition, endPosition, speed)
-end)
 
 return Effects

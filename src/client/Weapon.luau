@@ -7,6 +7,7 @@ local Effects = require(script.Parent.Effects)
 local RemoteEvents = ReplicatedStorage:WaitForChild("Events")
 
 local FireRemoteEvent = RemoteEvents:WaitForChild("Fire")
+local DamageRemoteEvent = RemoteEvents:WaitForChild("Damage")
 
 local CurrentCamera = workspace.CurrentCamera
 
@@ -68,6 +69,19 @@ function Weapon:Fire()
 		Effects:CreateBullet(self.Tool.default.Muzzle.WorldPosition, endPosition, 1024)
 		PlaySound(self.Tool.default.Muzzle.Fire, 1, 1, 0.1)
 
+		local hitPlayer = result and result.Instance.Parent
+		while (hitPlayer and not hitPlayer:IsA("Model") and hitPlayer.Parent ~= workspace) do
+			hitPlayer = hitPlayer.Parent
+		end
+		if (hitPlayer and hitPlayer:IsA("Model") and not hitPlayer:IsA("Terrain")) then
+			local humanoid = hitPlayer:FindFirstChildOfClass("Humanoid")
+			if (humanoid) then
+				humanoid:TakeDamage(14)
+			end
+
+			DamageRemoteEvent:FireServer(hitPlayer, 14)
+		end
+
 		FireRemoteEvent:FireServer(CurrentCamera.CFrame.Position, endPosition, 1024)
 
 		task.wait(60 / self.RoundsPerMinute)
@@ -88,5 +102,21 @@ function Weapon.newFromTool(tool)
 
 	return self
 end
+
+FireRemoteEvent.OnClientEvent:Connect(function(startPosition, endPosition, speed)
+	Effects:CreateBullet(startPosition, endPosition, speed)
+
+	local sound = ReplicatedStorage.Fire:Clone()
+	-- new part
+	local soundPart = Instance.new("Part")
+	soundPart.Size = Vector3.new(0.1, 0.1, 0.1)
+	soundPart.Position = startPosition
+	soundPart.Anchored = true
+	soundPart.CanCollide = false
+	soundPart.Transparency = 1
+	soundPart.Parent = workspace
+	PlaySound(sound, 1, 1, 0.1)
+	Debris:AddItem(soundPart, sound.TimeLength + 1)
+end)
 
 return Weapon
