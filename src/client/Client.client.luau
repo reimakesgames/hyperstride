@@ -1,6 +1,7 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
+local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Camera = require(script.Parent.Camera)
@@ -133,6 +134,10 @@ function LateUpdate(deltaTime)
 
 	SoundsFolder.Wind.Volume = math.clamp((characterState.Velocity.Magnitude / 1000) - 0.05, 0, 0.5)
 	SoundsFolder.Wind.PlaybackSpeed = Eerp(0.5, 4, characterState.Velocity.Magnitude / 500)
+
+	local effectiveFootstepVolume = (characterState.Stance == Character.Stance.Slide or characterState.Grounded) and 1 or 0
+	SoundsFolder.Footsteps.Volume = effectiveFootstepVolume * math.clamp(characterState.Velocity.Magnitude / 50, 0, 1) * 0.3
+	SoundsFolder.Footsteps.PlaybackSpeed = Eerp(1, 4, characterState.Velocity.Magnitude / 100)
 end
 
 function Step(deltaTime)
@@ -151,13 +156,25 @@ function onLand()
 	PlaySound(SoundsFolder.Land, 0.2, 1, 0.1)
 end
 
+function onStand()
+	TweenService:Create(SoundsFolder.Slide, TweenInfo.new(0.1), {Volume = 0}):Play()
+end
+
+function onCrouch()
+end
+
 function onSlideStart()
+	PlaySound(SoundsFolder.Slide, 0.2, 1, 0.1)
+	PlaySound(SoundsFolder.SlideStart, 0.05, 3, 0.1)
+	SoundsFolder.Slide.TimePosition = 1.1
 end
 
 function onSlideEnd()
+	TweenService:Create(SoundsFolder.Slide, TweenInfo.new(0.1), {Volume = 0}):Play()
 end
 
 function onSlideInterrupt()
+	TweenService:Create(SoundsFolder.Slide, TweenInfo.new(0.1), {Volume = 0}):Play()
 end
 
 RunService:BindToRenderStep("HYPERZTRIDE_Update", Enum.RenderPriority.Input.Value, Update)
@@ -167,6 +184,8 @@ RunService.RenderStepped:Connect(Step)
 Character.StateChanged:Connect(onStateChanged)
 Character.Jump:Connect(onJump)
 Character.Land:Connect(onLand)
+Character.Stand:Connect(onStand)
+Character.Crouch:Connect(onCrouch)
 Character.SlideStarted:Connect(onSlideStart)
 Character.SlideEnded:Connect(onSlideEnd)
 Character.SlideInterrupt:Connect(onSlideInterrupt)
