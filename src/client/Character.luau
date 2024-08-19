@@ -1,4 +1,9 @@
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Packages = ReplicatedStorage:WaitForChild("Packages")
+
+local goodsignal = require(Packages:WaitForChild("goodsignal"))
 
 local CurrentCharacter = Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait()
 local RootPart: Part = CurrentCharacter:WaitForChild("HumanoidRootPart")
@@ -40,6 +45,15 @@ end
 
 local Character = {}
 Character.__index = Character
+
+Character.StateChanged = goodsignal.new()
+Character.Jump = goodsignal.new()
+Character.Land = goodsignal.new()
+Character.Crouch = goodsignal.new()
+Character.Stand = goodsignal.new()
+Character.SlideStarted = goodsignal.new()
+Character.SlideEnded = goodsignal.new()
+Character.SlideInterrupt = goodsignal.new()
 
 Character.CrouchInput = {
 	None = 0,
@@ -183,7 +197,6 @@ function Character:UpdateVelocity(deltaTime)
 		local wasStanding = _lastState.Stance == Character.Stance.Stand
 		local wasInAir = not _lastState.Grounded
 		if (moving and crouching and (wasStanding or wasInAir)) then
-			print("sliding")
 			_state.Stance = Character.Stance.Slide
 
 			local effectiveSlideStartSpeed = SlideStartSpeed
@@ -193,6 +206,8 @@ function Character:UpdateVelocity(deltaTime)
 			end
 			local slideSpeed = math.max(effectiveSlideStartSpeed, _currentVelocity.Magnitude)
 			_currentVelocity = ProjectToPlane(_currentVelocity, ground.Normal).Unit * slideSpeed
+
+			Character.SlideStarted:Fire()
 		end
 
 		if (_state.Stance == Character.Stance.Stand or _state.Stance == Character.Stance.Crouch) then
@@ -221,8 +236,9 @@ function Character:UpdateVelocity(deltaTime)
 			_currentVelocity = steerVelocity
 
 			if (_currentVelocity.Magnitude < SlideEndSpeed) then
-				print("slide end")
 				_state.Stance = Character.Stance.Crouch
+
+				Character.SlideEnded:Fire()
 			end
 		end
 	else
@@ -276,7 +292,6 @@ function Character:UpdateVelocity(deltaTime)
 		local canCoyoteJump = _timeSinceUngrounded < CoyoteTime and not _ungroundedDueToJump
 
 		if (_state.Grounded or canCoyoteJump) then
-			print("jumping")
 			_requestedJump = false
 			_requestedCrouch = false
 			_requestedCrouchInAir = false
@@ -286,6 +301,8 @@ function Character:UpdateVelocity(deltaTime)
 			local currentVerticalSpeed = _currentVelocity:Dot(RootPart.CFrame.UpVector)
 			local targetVerticalSpeed = math.max(currentVerticalSpeed, JumpForce)
 			_currentVelocity += RootPart.CFrame.UpVector * (targetVerticalSpeed - currentVerticalSpeed)
+
+			Character.Jump:Fire()
 
 			task.delay(0.05, function()
 				_isStickingToGround = true
@@ -299,8 +316,9 @@ function Character:UpdateVelocity(deltaTime)
 	end
 
 	if (not ground and _state.Stance == Character.Stance.Slide) then
-		print("cancelled sliding because of air")
 		_state.Stance = Character.Stance.Crouch
+
+		Character.SlideInterrupt:Fire()
 	end
 
 	RootPart.AssemblyLinearVelocity = _currentVelocity
@@ -316,8 +334,9 @@ function Character:BeforeCharacterUpdate()
 	_tempState = table.clone(_state)
 
 	if (_requestedCrouch and _state.Stance == Character.Stance.Stand) then
-		print("crouching")
 		_state.Stance = Character.Stance.Crouch
+
+		Character.Crouch:Fire()
 	end
 end
 
@@ -328,10 +347,10 @@ function Character:AfterCharacterUpdate()
 		raycastParams.FilterDescendantsInstances = {CurrentCharacter}
 		local blockedHead = workspace:Spherecast(RootPart.Position - Vector3.new(0, 2, 0), 3, Vector3.new(0, 4.5, 0), raycastParams)
 		if (not blockedHead) then
-			print("standing")
 			_state.Stance = Character.Stance.Stand
+
+			Character.Stand:Fire()
 		else
-			print("can't stand up")
 			_requestedCrouch = true
 			_state.Stance = Character.Stance.Crouch
 		end
@@ -340,6 +359,14 @@ function Character:AfterCharacterUpdate()
 	_state.Grounded = CheckGround() and true or false
 	_state.Velocity = _currentVelocity
 	_lastState = _tempState
+
+	if (_state.Grounded and not _lastState.Grounded) then
+		Character.Land:Fire()
+	end
+
+	if (_state.Grounded ~= _lastState.Grounded or _state.Stance ~= _lastState.Stance) then
+		Character.StateChanged:Fire(_state)
+	end
 end
 
 function Character:GetState(): CharacterState

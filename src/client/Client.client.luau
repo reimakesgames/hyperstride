@@ -1,5 +1,6 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
 local UserInputService = game:GetService("UserInputService")
 
 local Camera = require(script.Parent.Camera)
@@ -9,6 +10,8 @@ local Spring = require(script.Parent.Spring)
 
 local CurrentCamera = workspace.CurrentCamera
 local CurrentCharacter = Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait()
+
+local SoundsFolder = StarterGui:WaitForChild("Sounds")
 
 local JumpSpring = Spring.new(0.075, 20)
 
@@ -27,6 +30,16 @@ local DampedAcceleration = Vector3.new()
 local SmoothStrength = WalkStrength
 
 local CAMERA_OFFSET_FROM_ROOT = Vector3.new(0, 1.5, 0)
+
+local function Eerp(a: number, b: number, t: number): number
+	return a * math.exp(t * math.log(b / a))
+end
+
+local function PlaySound(sound: Sound, volume: number, pitch: number, pitchRange: number)
+	sound:Play()
+	sound.Volume = volume
+	sound.PlaybackSpeed = Eerp(-pitchRange + pitch, pitchRange + pitch, math.random())
+end
 
 local function GetMovementVector2()
 	local Movement = Vector2.new()
@@ -92,11 +105,13 @@ function LateUpdate(deltaTime)
 	local RootCFrame: CFrame = CurrentCharacter:WaitForChild("HumanoidRootPart").CFrame
 	Camera:UpdatePosition(RootCFrame.Position + CAMERA_OFFSET_FROM_ROOT)
 
-	local PlanarAcceleration = ProjectOnPlane(Character:GetState().Acceleration, Vector3.yAxis)
+	local characterState = Character:GetState()
+
+	local PlanarAcceleration = ProjectOnPlane(characterState.Acceleration, Vector3.yAxis)
 	local Damping = if PlanarAcceleration.Magnitude > DampedAcceleration.Magnitude then AttackDamping else DecayDamping
 	DampedAcceleration = LeanDamper:Update(DampedAcceleration, PlanarAcceleration, Damping)
 	local LeanAxis = DampedAcceleration:Cross(Vector3.yAxis).Unit
-	local EffectiveStrength = Character:GetState().Stance == Character.Stance.Slide and SlideStrength or WalkStrength
+	local EffectiveStrength = characterState.Stance == Character.Stance.Slide and SlideStrength or WalkStrength
 	SmoothStrength = Lerp(SmoothStrength, EffectiveStrength, 1 - math.exp(-StrengthResponse * deltaTime))
 
 	local LeanCFrame = CFrame.fromAxisAngle(LeanAxis, math.rad(-DampedAcceleration.Magnitude * SmoothStrength))
@@ -115,6 +130,9 @@ function LateUpdate(deltaTime)
 	* JumpCFrame
 
 	Camera:UpdateCustomCFrame(CameraCFrame)
+
+	SoundsFolder.Wind.Volume = math.clamp((characterState.Velocity.Magnitude / 1000) - 0.05, 0, 0.5)
+	SoundsFolder.Wind.PlaybackSpeed = Eerp(0.5, 4, characterState.Velocity.Magnitude / 500)
 end
 
 function Step(deltaTime)
@@ -122,9 +140,36 @@ function Step(deltaTime)
 	Character:UpdateRotation()
 end
 
+function onStateChanged(state: Character.CharacterState)
+end
+
+function onJump()
+	PlaySound(SoundsFolder.Jump, 0.1, 2, 0.1)
+end
+
+function onLand()
+	PlaySound(SoundsFolder.Land, 0.2, 1, 0.1)
+end
+
+function onSlideStart()
+end
+
+function onSlideEnd()
+end
+
+function onSlideInterrupt()
+end
+
 RunService:BindToRenderStep("HYPERZTRIDE_Update", Enum.RenderPriority.Input.Value, Update)
 RunService:BindToRenderStep("HYPERZTRIDE_LateUpdate", Enum.RenderPriority.Camera.Value, LateUpdate)
 RunService.RenderStepped:Connect(Step)
+
+Character.StateChanged:Connect(onStateChanged)
+Character.Jump:Connect(onJump)
+Character.Land:Connect(onLand)
+Character.SlideStarted:Connect(onSlideStart)
+Character.SlideEnded:Connect(onSlideEnd)
+Character.SlideInterrupt:Connect(onSlideInterrupt)
 
 Players.LocalPlayer.CharacterAdded:Connect(function(character)
 	CurrentCharacter = character
