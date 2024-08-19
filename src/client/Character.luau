@@ -353,6 +353,7 @@ end
 Players.LocalPlayer.CharacterAdded:Connect(function(character)
 	CurrentCharacter = character
 	RootPart = CurrentCharacter:WaitForChild("HumanoidRootPart")
+	Humanoid = CurrentCharacter:WaitForChild("Humanoid")
 
 	task.delay(1, function()
 		for _, child in ipairs(CurrentCharacter:GetDescendants()) do
