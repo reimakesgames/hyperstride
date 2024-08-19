@@ -361,7 +361,7 @@ function Character:AfterCharacterUpdate()
 	_lastState = _tempState
 
 	if (_state.Grounded and not _lastState.Grounded) then
-		Character.Land:Fire()
+		Character.Land:Fire(-_state.Velocity.Y)
 	end
 
 	if (_state.Grounded ~= _lastState.Grounded or _state.Stance ~= _lastState.Stance) then

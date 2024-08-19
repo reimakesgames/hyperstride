@@ -153,12 +153,11 @@ function LateUpdate(deltaTime)
 	SoundsFolder.Wind.PlaybackSpeed = Eerp(0.5, 4, characterState.Velocity.Magnitude / 500)
 
 	local effectiveFootstepVolume = (characterState.Grounded and characterState.Stance ~= Character.Stance.Slide) and 1 or 0
-	SoundsFolder.Footsteps.Volume = effectiveFootstepVolume * math.clamp(WalkSpeed, 0, 1) * 1
+	SoundsFolder.Footsteps.Volume = effectiveFootstepVolume * math.clamp(WalkSpeed, 0, 1) * 2
 	SoundsFolder.Footsteps.PlaybackSpeed = PlaybackSpeed
 
 	local effectiveFieldOfView = characterState.Stance == Character.Stance.Slide and SlideFieldOfView or NormalFieldOfView
 	effectiveFieldOfView += characterState.Velocity.Magnitude / 20
-	print(effectiveFieldOfView)
 	CurrentCamera.FieldOfView = Lerp(CurrentCamera.FieldOfView, effectiveFieldOfView, 1 - math.exp(-FieldOfViewResponsiveness * deltaTime))
 end
 
@@ -171,11 +170,18 @@ function onStateChanged(state: Character.CharacterState)
 end
 
 function onJump()
-	PlaySound(SoundsFolder.Jump, 0.3, 1.5, 0.2)
+	PlaySound(SoundsFolder.Jump, 0.2, 1.5, 0.2)
 end
 
-function onLand()
-	PlaySound(SoundsFolder.Land, 0.6, 1, 0.1)
+function onLand(landingVelocity: number)
+	local characterState = Character:GetState()
+	-- sliding doesn't trigger hard landing sounds
+	if (landingVelocity > 150 and not (characterState.Stance == Character.Stance.Crouch)) then
+		PlaySound(SoundsFolder.Land, 0.6, 1.5, 0.1)
+		PlaySound(SoundsFolder.LandBig, 0.3, 1, 0.1)
+	else
+		PlaySound(SoundsFolder.Land, 0.3, 1, 0.1)
+	end
 end
 
 function onStand()
@@ -186,8 +192,8 @@ function onCrouch()
 end
 
 function onSlideStart()
-	PlaySound(SoundsFolder.Slide, 0.7, 1, 0.1)
-	PlaySound(SoundsFolder.SlideStart, 0.2, 3, 0.1)
+	PlaySound(SoundsFolder.Slide, 1, 1, 0.1)
+	PlaySound(SoundsFolder.SlideStart, 0.5, 3, 0.1)
 	SoundsFolder.Slide.TimePosition = 1.1
 end
 
