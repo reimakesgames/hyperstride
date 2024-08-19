@@ -8,14 +8,6 @@ local goodsignal = require(Packages:WaitForChild("goodsignal"))
 local CurrentCharacter = Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait()
 local RootPart: Part = CurrentCharacter:WaitForChild("HumanoidRootPart")
 local Humanoid: Humanoid = CurrentCharacter:WaitForChild("Humanoid")
-task.delay(1, function()
-	for _, child in ipairs(CurrentCharacter:GetDescendants()) do
-		if (child:IsA("BasePart")) then
-			child.Massless = true
-			child.LocalTransparencyModifier = 1
-		end
-	end
-end)
 
 local function ProjectToPlane(v: Vector3, n: Vector3)
 	return v - n * (v:Dot(n))
@@ -381,15 +373,6 @@ Players.LocalPlayer.CharacterAdded:Connect(function(character)
 	CurrentCharacter = character
 	RootPart = CurrentCharacter:WaitForChild("HumanoidRootPart")
 	Humanoid = CurrentCharacter:WaitForChild("Humanoid")
-
-	task.delay(1, function()
-		for _, child in ipairs(CurrentCharacter:GetDescendants()) do
-			if (child:IsA("BasePart")) then
-				child.Massless = true
-				child.LocalTransparencyModifier = 1
-			end
-		end
-	end)
 end)
 
 return Character

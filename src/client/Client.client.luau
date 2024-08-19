@@ -12,6 +12,19 @@ local Spring = require(script.Parent.Spring)
 local CurrentCamera = workspace.CurrentCamera
 local CurrentCharacter = Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait()
 
+for _, child in ipairs(CurrentCharacter:GetDescendants()) do
+	if (child:IsA("BasePart")) then
+		child.Massless = true
+		child.LocalTransparencyModifier = 1
+	end
+end
+CurrentCharacter.DescendantAdded:Connect(function(child)
+	if (child:IsA("BasePart")) then
+		child.Massless = true
+		child.LocalTransparencyModifier = 1
+	end
+end)
+
 local SoundsFolder = StarterGui:WaitForChild("Sounds")
 
 local JumpSpring = Spring.new(0.075, 20)
@@ -220,4 +233,17 @@ Character.SlideInterrupt:Connect(onSlideInterrupt)
 
 Players.LocalPlayer.CharacterAdded:Connect(function(character)
 	CurrentCharacter = character
+
+	for _, child in ipairs(character:GetDescendants()) do
+		if (child:IsA("BasePart")) then
+			child.Massless = true
+			child.LocalTransparencyModifier = 1
+		end
+	end
+	character.DescendantAdded:Connect(function(child)
+		if (child:IsA("BasePart")) then
+			child.Massless = true
+			child.LocalTransparencyModifier = 1
+		end
+	end)
 end)
