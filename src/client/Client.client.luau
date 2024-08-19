@@ -6,22 +6,25 @@ local UserInputService = game:GetService("UserInputService")
 
 local Camera = require(script.Parent.Camera)
 local Character = require(script.Parent.Character)
+local Effects = require(script.Parent.Effects)
 local SmoothDamp = require(script.Parent.SmoothDamp)
 local Spring = require(script.Parent.Spring)
+local Weapon = require(script.Parent.Weapon)
 
 local CurrentCamera = workspace.CurrentCamera
 local CurrentCharacter = Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait()
 
-for _, child in ipairs(CurrentCharacter:GetDescendants()) do
-	if (child:IsA("BasePart")) then
-		child.Massless = true
-		child.LocalTransparencyModifier = 1
+task.delay(2, function()
+	for _, child in ipairs(CurrentCharacter:GetDescendants()) do
+		if (child:IsA("BasePart")) then
+			child.Massless = true
+			child.LocalTransparencyModifier = 1
+		end
 	end
-end
+end)
 CurrentCharacter.DescendantAdded:Connect(function(child)
-	if (child:IsA("BasePart")) then
-		child.Massless = true
-		child.LocalTransparencyModifier = 1
+	if (child:IsA("Tool")) then
+		Weapon.newFromTool(child)
 	end
 end)
 
@@ -172,6 +175,8 @@ function LateUpdate(deltaTime)
 	local effectiveFieldOfView = characterState.Stance == Character.Stance.Slide and SlideFieldOfView or NormalFieldOfView
 	effectiveFieldOfView += characterState.Velocity.Magnitude / 20
 	CurrentCamera.FieldOfView = Lerp(CurrentCamera.FieldOfView, effectiveFieldOfView, 1 - math.exp(-FieldOfViewResponsiveness * deltaTime))
+
+	Effects:Update(deltaTime)
 end
 
 function Step(deltaTime)
@@ -231,19 +236,22 @@ Character.SlideStarted:Connect(onSlideStart)
 Character.SlideEnded:Connect(onSlideEnd)
 Character.SlideInterrupt:Connect(onSlideInterrupt)
 
+UserInputService.MouseIconEnabled = false
+
 Players.LocalPlayer.CharacterAdded:Connect(function(character)
 	CurrentCharacter = character
 
-	for _, child in ipairs(character:GetDescendants()) do
-		if (child:IsA("BasePart")) then
-			child.Massless = true
-			child.LocalTransparencyModifier = 1
+	task.delay(2, function()
+		for _, child in ipairs(CurrentCharacter:GetDescendants()) do
+			if (child:IsA("BasePart")) then
+				child.Massless = true
+				child.LocalTransparencyModifier = 1
+			end
 		end
-	end
-	character.DescendantAdded:Connect(function(child)
-		if (child:IsA("BasePart")) then
-			child.Massless = true
-			child.LocalTransparencyModifier = 1
+	end)
+	character.ChildAdded:Connect(function(child)
+		if (child:IsA("Tool")) then
+			Weapon.newFromTool(child)
 		end
 	end)
 end)
