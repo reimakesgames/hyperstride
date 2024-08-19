@@ -1,6 +1,7 @@
 local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
 
 local Effects = require(script.Parent.Effects)
 
@@ -60,7 +61,7 @@ function Weapon:Fire()
 		-- shoot
 		local raycastParams = RaycastParams.new()
 		raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-		raycastParams.FilterDescendantsInstances = {self.Tool.Parent}
+		raycastParams.FilterDescendantsInstances = {self.Tool.Parent, Players.LocalPlayer.Character}
 		raycastParams.IgnoreWater = true
 
 		local result = workspace:Raycast(CurrentCamera.CFrame.Position, CurrentCamera.CFrame.LookVector * 1024, raycastParams)
@@ -115,6 +116,7 @@ FireRemoteEvent.OnClientEvent:Connect(function(startPosition, endPosition, speed
 	soundPart.CanCollide = false
 	soundPart.Transparency = 1
 	soundPart.Parent = workspace
+	sound.Parent = soundPart
 	PlaySound(sound, 1, 1, 0.1)
 	Debris:AddItem(soundPart, sound.TimeLength + 1)
 end)
