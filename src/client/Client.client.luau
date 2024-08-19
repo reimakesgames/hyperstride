@@ -132,11 +132,11 @@ function LateUpdate(deltaTime)
 
 	Camera:UpdateCustomCFrame(CameraCFrame)
 
-	SoundsFolder.Wind.Volume = math.clamp((characterState.Velocity.Magnitude / 1000) - 0.05, 0, 0.5)
+	SoundsFolder.Wind.Volume = math.clamp((characterState.Velocity.Magnitude / 500) - 0.1, 0, 0.5)
 	SoundsFolder.Wind.PlaybackSpeed = Eerp(0.5, 4, characterState.Velocity.Magnitude / 500)
 
-	local effectiveFootstepVolume = (characterState.Stance == Character.Stance.Slide or characterState.Grounded) and 1 or 0
-	SoundsFolder.Footsteps.Volume = effectiveFootstepVolume * math.clamp(characterState.Velocity.Magnitude / 50, 0, 1) * 0.3
+	local effectiveFootstepVolume = (characterState.Grounded and characterState.Stance ~= Character.Stance.Slide) and 1 or 0
+	SoundsFolder.Footsteps.Volume = effectiveFootstepVolume * math.clamp(characterState.Velocity.Magnitude / 50, 0, 1) * 1
 	SoundsFolder.Footsteps.PlaybackSpeed = Eerp(1, 4, characterState.Velocity.Magnitude / 100)
 end
 
@@ -149,11 +149,11 @@ function onStateChanged(state: Character.CharacterState)
 end
 
 function onJump()
-	PlaySound(SoundsFolder.Jump, 0.1, 2, 0.1)
+	PlaySound(SoundsFolder.Jump, 0.3, 1.5, 0.2)
 end
 
 function onLand()
-	PlaySound(SoundsFolder.Land, 0.2, 1, 0.1)
+	PlaySound(SoundsFolder.Land, 0.6, 1, 0.1)
 end
 
 function onStand()
@@ -164,8 +164,8 @@ function onCrouch()
 end
 
 function onSlideStart()
-	PlaySound(SoundsFolder.Slide, 0.2, 1, 0.1)
-	PlaySound(SoundsFolder.SlideStart, 0.05, 3, 0.1)
+	PlaySound(SoundsFolder.Slide, 0.7, 1, 0.1)
+	PlaySound(SoundsFolder.SlideStart, 0.2, 3, 0.1)
 	SoundsFolder.Slide.TimePosition = 1.1
 end
 
