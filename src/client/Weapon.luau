@@ -67,7 +67,7 @@ function Weapon:Fire()
 		local result = workspace:Raycast(CurrentCamera.CFrame.Position, CurrentCamera.CFrame.LookVector * 1024, raycastParams)
 		local endPosition = result and result.Position or CurrentCamera.CFrame.Position + CurrentCamera.CFrame.LookVector * 1024
 
-		Effects:CreateBullet(self.Tool.default.Muzzle.WorldPosition, endPosition, 1024)
+		Effects:CreateBullet(self.Tool.default.Muzzle.WorldPosition, endPosition, 2048)
 		PlaySound(self.Tool.default.Muzzle.Fire, 1, 1, 0.1)
 
 		local hitPlayer = result and result.Instance.Parent

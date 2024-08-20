@@ -1,3 +1,4 @@
+local TweenService = game:GetService("TweenService")
 local CurrentCamera = workspace.CurrentCamera
 
 local Bullets = {}
@@ -7,7 +8,7 @@ local Effects = {}
 function Effects:CreateBullet(startPosition: Vector3, endPosition: Vector3, speed: number)
 	-- create a part at the start position
 	local bullet = Instance.new("Part")
-	bullet.Size = Vector3.new(0.1, 0.1, 20)
+	bullet.Size = Vector3.new(0.1, 0.1, 1)
 	bullet.CFrame = CFrame.new(startPosition, endPosition) * CFrame.new(0, 0, -bullet.Size.Z / 2)
 	bullet.Anchored = true
 	bullet.CanCollide = false
@@ -23,6 +24,14 @@ function Effects:CreateBullet(startPosition: Vector3, endPosition: Vector3, spee
 		EndPosition = endPosition,
 		Speed = speed,
 	}
+
+	-- tween the bullet to fade out
+	local durationOfBullet = (endPosition - startPosition).Magnitude / speed
+	local tweenInfo = TweenInfo.new(durationOfBullet, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out)
+	local tween = TweenService:Create(bullet, tweenInfo, {
+		Transparency = 1,
+	})
+	tween:Play()
 
 	task.defer(function()
 		table.insert(Bullets, bulletObject)
@@ -51,7 +60,9 @@ function Effects:Update(deltaTime)
 			bullet:Destroy()
 			table.remove(Bullets, i)
 		else
-			bullet.Position = newPosition
+			bullet.CFrame = CFrame.new(bullet.Position, newPosition)
+			* CFrame.new(0, 0, -bullet.Size.Z / 2)
+			* CFrame.Angles(0, 0, math.rad(math.random(-180, 180)))
 		end
 	end
 end
