@@ -57,7 +57,7 @@ function Weapon:Fire()
 
 	self.Shooting = true
 
-	while (self.Shooting) do
+	while (self.Shooting and not self.Tool.Parent:IsA("Backpack")) do
 		-- shoot
 		local raycastParams = RaycastParams.new()
 		raycastParams.FilterType = Enum.RaycastFilterType.Exclude
