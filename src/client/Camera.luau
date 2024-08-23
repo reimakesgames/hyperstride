@@ -21,9 +21,11 @@ end
 function Camera:UpdateRotation(deltaTime: number)
 	CurrentCamera.CFrame = PureCFrame
 	local Delta = UserInputService:GetMouseDelta() * UserSettings().GameSettings.MouseSensitivity
-	local CameraCFrame = Camera:GetCameraCFrame()
-	* CFrame.Angles(0, -Delta.X / (math.pi * 2 * 1.33), 0)
-	* CFrame.Angles(-Delta.Y / (math.pi * 2 * 1.33), 0, 0)
+	local CameraCFrame = Camera:GetCameraCFrame().Rotation
+	* CFrame.fromEulerAnglesYXZ(-Delta.Y / (math.pi * 2 * 1.33), -Delta.X / (math.pi * 2 * 1.33), 0)
+	if (CameraCFrame.UpVector.Y <= 0.01) then
+		CameraCFrame = Camera:GetCameraCFrame().Rotation * CFrame.fromEulerAnglesYXZ(0, -Delta.X / (math.pi * 2 * 1.33), 0)
+	end
 	CurrentCamera.CFrame = CFrame.lookAlong(CurrentCamera.CFrame.Position, CameraCFrame.LookVector)
 end
 
