@@ -1,3 +1,4 @@
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Camera = require(script.Parent.Camera)
 local Spring = require(script.Parent.Spring)
@@ -16,12 +17,15 @@ function Viewmodel.new(toolName: string)
 	self.Animations = {}
 	self._animationsLoaded = false
 	self.RecoilSpring = Spring.new(0.1, 10)
+	self.Decorations = nil
 
 	local animationController = self.Viewmodel:FindFirstChild("AnimationController")
 	if (not animationController) then
 		animationController = Instance.new("AnimationController")
 		animationController.Parent = self.Viewmodel
 	end
+
+	self:Decorate()
 
 	return self
 end
@@ -72,6 +76,13 @@ function Viewmodel:Equip()
 	self.Animations.Idle:Play(1, 1, 1)
 	self.Viewmodel:SetPrimaryPartCFrame(CurrentCamera.CFrame)
 	self.Equipped = true
+
+	-- get the shirt from the player
+	local shirt = Players.LocalPlayer.Character:FindFirstChildOfClass("Shirt")
+	if (shirt and self.Decorations) then
+		local shirtId = shirt.ShirtTemplate
+		self.Decorations.Shirt.ShirtTemplate = shirtId
+	end
 end
 
 function Viewmodel:Unequip()
@@ -81,6 +92,29 @@ function Viewmodel:Unequip()
 	self.Animations.Equip:Play(0.001, 1, 0.0000001)
 
 	self.Viewmodel:SetPrimaryPartCFrame(CFrame.new(0, 0, 0))
+end
+
+function Viewmodel:Decorate()
+	-- get the arms in Assets/Arms
+	local arms = Assets:WaitForChild("Arms"):Clone()
+	arms.Parent = CurrentCamera
+	-- add motor6ds to the arms to the viewmodels arms
+	local leftArmMotor6D = Instance.new("Motor6D")
+	leftArmMotor6D.Part0 = arms["Left Arm"]
+	leftArmMotor6D.Part1 = self.Viewmodel:FindFirstChild("Left Arm")
+	leftArmMotor6D.Parent = arms["Left Arm"]
+	local rightArmMotor6D = Instance.new("Motor6D")
+	rightArmMotor6D.Part0 = arms["Right Arm"]
+	rightArmMotor6D.Part1 = self.Viewmodel:FindFirstChild("Right Arm")
+	rightArmMotor6D.Parent = arms["Right Arm"]
+	-- set the arms to the viewmodels arms
+	self.Viewmodel:FindFirstChild("Left Arm").CFrame = arms["Left Arm"].CFrame
+	self.Viewmodel:FindFirstChild("Right Arm").CFrame = arms["Right Arm"].CFrame
+	-- hide the viewmodels arms
+	self.Viewmodel:FindFirstChild("Left Arm").Transparency = 1
+	self.Viewmodel:FindFirstChild("Right Arm").Transparency = 1
+
+	self.Decoration = arms
 end
 
 function Viewmodel:LoadAnimations(animations: Folder)
