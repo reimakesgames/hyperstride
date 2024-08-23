@@ -28,5 +28,9 @@ function Spring:Step(target: Vector3, deltaTime: number)
 	self._current, self._velocity = self:Calculate(self._current, self._velocity, target, self._halfLife, self._frequency, deltaTime)
 end
 
+function Spring:Impulse(impulse: Vector3)
+	self._velocity = self._velocity + impulse
+end
+
 export type Spring = typeof(Spring.new(0, 0))
 return Spring

@@ -14,18 +14,32 @@ local Weapon = require(script.Parent.Weapon)
 local CurrentCamera = workspace.CurrentCamera
 local CurrentCharacter = Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait()
 
-task.delay(2, function()
-	for _, child in ipairs(CurrentCharacter:GetDescendants()) do
-		if (child:IsA("BasePart")) then
-			child.Massless = true
-			child.LocalTransparencyModifier = 1
-		end
+local CurrentGun = nil
+local CurrentViewmodel = nil
+
+for _, child in ipairs(CurrentCharacter:GetDescendants()) do
+	if (child:IsA("BasePart")) then
+		child.Massless = true
+		child.LocalTransparencyModifier = 1
 	end
-end)
+end
 CurrentCharacter.DescendantAdded:Connect(function(child)
 	if (child:IsA("Tool")) then
 		Weapon.newFromTool(child)
 	end
+	if (child:IsA("BasePart")) then
+		child.Massless = true
+		child.LocalTransparencyModifier = 1
+	end
+end)
+
+Weapon.Equipped:Connect(function(tool)
+	CurrentGun = tool
+	CurrentViewmodel = tool.Viewmodel
+end)
+Weapon.Unequipped:Connect(function()
+	CurrentGun = nil
+	CurrentViewmodel = nil
 end)
 
 local SoundsFolder = StarterGui:WaitForChild("Sounds")
@@ -165,6 +179,15 @@ function LateUpdate(deltaTime)
 
 	Camera:UpdateCustomCFrame(CameraCFrame)
 
+	if (CurrentGun) then
+		CurrentGun.Viewmodel:Update(deltaTime)
+		local viewmodelCFrame = CFrame.new()
+		* WalkCFrame
+		* LeanCFrame:ToObjectSpace(Camera:GetCameraCFrame().Rotation)
+		* JumpCFrame
+		CurrentViewmodel:SetCFrame(viewmodelCFrame)
+	end
+
 	SoundsFolder.Wind.Volume = math.clamp((characterState.Velocity.Magnitude / 500) - 0.1, 0, 0.5)
 	SoundsFolder.Wind.PlaybackSpeed = Eerp(0.5, 4, characterState.Velocity.Magnitude / 500)
 
@@ -241,17 +264,19 @@ UserInputService.MouseIconEnabled = false
 Players.LocalPlayer.CharacterAdded:Connect(function(character)
 	CurrentCharacter = character
 
-	task.delay(2, function()
-		for _, child in ipairs(CurrentCharacter:GetDescendants()) do
-			if (child:IsA("BasePart")) then
-				child.Massless = true
-				child.LocalTransparencyModifier = 1
-			end
+	for _, child in ipairs(CurrentCharacter:GetDescendants()) do
+		if (child:IsA("BasePart")) then
+			child.Massless = true
+			child.LocalTransparencyModifier = 1
 		end
-	end)
-	character.ChildAdded:Connect(function(child)
+	end
+	character.DescendantAdded:Connect(function(child)
 		if (child:IsA("Tool")) then
 			Weapon.newFromTool(child)
+		end
+		if (child:IsA("BasePart")) then
+			child.Massless = true
+			child.LocalTransparencyModifier = 1
 		end
 	end)
 end)

@@ -2,8 +2,11 @@ local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
+local goodsignal = require(ReplicatedStorage.Packages.goodsignal)
 local Effects = require(script.Parent.Effects)
+local Viewmodel = require(script.Parent.Viewmodel)
 
 local RemoteEvents = ReplicatedStorage:WaitForChild("Events")
 
@@ -30,6 +33,9 @@ local WeaponsList = {}
 
 local Weapon = {}
 Weapon.__index = Weapon
+
+Weapon.Equipped = goodsignal.new()
+Weapon.Unequipped = goodsignal.new()
 
 function Weapon.new()
 	local self = setmetatable({}, Weapon)
@@ -67,10 +73,11 @@ function Weapon:Fire()
 		local result = workspace:Raycast(CurrentCamera.CFrame.Position, CurrentCamera.CFrame.LookVector * 1024, raycastParams)
 		local endPosition = result and result.Position or CurrentCamera.CFrame.Position + CurrentCamera.CFrame.LookVector * 1024
 
-		Effects:CreateBullet(self.Tool.default.Muzzle.WorldPosition, endPosition, 2048)
-		Effects:EmitParticles(self.Tool.default.Muzzle.Flash)
-		Effects:EmitParticles(self.Tool.default.Muzzle.Smoke)
-		PlaySound(self.Tool.default.Muzzle.Fire, 0.2, 1, 0.1)
+		self.Viewmodel:Fire()
+		Effects:CreateBullet(self.Viewmodel.Viewmodel.default.Muzzle.WorldPosition, endPosition, 2048)
+		Effects:EmitParticles(self.Viewmodel.Viewmodel.default.Muzzle.Flash)
+		Effects:EmitParticles(self.Viewmodel.Viewmodel.default.Muzzle.Smoke)
+		PlaySound(self.Viewmodel.Viewmodel.default.Muzzle.Fire, 0.2, 1, 0.1)
 
 		local hitPlayer = result and result.Instance.Parent
 		while (hitPlayer and not hitPlayer:IsA("Model") and hitPlayer.Parent ~= workspace) do
@@ -100,6 +107,18 @@ function Weapon.newFromTool(tool)
 	self.Tool = tool
 	self.Shooting = false
 	self.RoundsPerMinute = 1200
+	self.Viewmodel = Viewmodel.new("v" .. tool.Name)
+	self.Tool.Equipped:Connect(function()
+		self.Viewmodel:Equip()
+		self.Equipped:Fire(self)
+	end)
+	self.Tool.Unequipped:Connect(function()
+		self.Viewmodel:Unequip()
+		self.Unequipped:Fire(self)
+	end)
+	-- RunService:BindToRenderStep("HYPERSTRIDE_ViewmodelUpdate", Enum.RenderPriority.Last.Value, function(deltaTime)
+	-- 	self.Viewmodel:Update(deltaTime)
+	-- end)
 
 	WeaponsList[tool] = self
 

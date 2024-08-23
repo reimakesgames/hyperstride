@@ -27,6 +27,7 @@ function Camera:UpdateRotation(deltaTime: number)
 		CameraCFrame = Camera:GetCameraCFrame().Rotation * CFrame.fromEulerAnglesYXZ(0, -Delta.X / (math.pi * 2 * 1.33), 0)
 	end
 	CurrentCamera.CFrame = CFrame.lookAlong(CurrentCamera.CFrame.Position, CameraCFrame.LookVector)
+	PureCFrame = CurrentCamera.CFrame
 end
 
 function Camera:GetCameraCFrame()
@@ -37,7 +38,6 @@ end
 	This function adds in custom cframe stuff without changing the camera's original cframe.
 ]]
 function Camera:UpdateCustomCFrame(cframe: CFrame)
-	PureCFrame = CurrentCamera.CFrame
 	CurrentCamera.CFrame = cframe
 end
 
